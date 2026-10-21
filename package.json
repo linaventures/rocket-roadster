@@ -1,0 +1,17 @@
+{
+  "dependencies": {
+    "@gltf-transform/core": "4.5.1",
+    "@gltf-transform/extensions": "4.5.1",
+    "@gltf-transform/functions": "4.5.1",
+    "draco3dgltf": "1.5.9",
+    "gltf-validator": "2.0.0-dev.3.10"
+  },
+  "name": "rocket-roadster",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "serve": "python3 -m http.server 8000",
+    "serve:csp": "python3 tools/csp_strict.py . 8000"
+  },
+  "description": "Fan-made 3D Roadster configurator and driving game"
+}
