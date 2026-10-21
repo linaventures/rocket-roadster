@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-assets="assets/">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Rocket Roadster Studio</title>
@@ -321,6 +321,9 @@ body.driving .panel, body.driving .views, body.driving .doors-btn, body.driving 
 <script>
 (() => {
 'use strict';
+// The public repo keeps the data in assets/<group>/ (set by data-assets on <html>); the artifact serves every file next to the page.
+const ASSETS = document.documentElement.dataset.assets || '';
+const asset = (group, file) => ASSETS ? `${ASSETS}${group}/${file}` : file;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---------- Options ---------- */
@@ -781,9 +784,9 @@ function makeScanGlass(src) {
 }
 // Artifacts block data: URLs and won't serve .glb, so the model ships as base64 text parts; join and parse them here.
 async function fetchModel() {
-  const man = await fetch('roadster-body.parts.json').then(r => { if (!r.ok) throw new Error('model manifest ' + r.status); return r.json(); });
+  const man = await fetch(asset('car', 'roadster-body.parts.json')).then(r => { if (!r.ok) throw new Error('model manifest ' + r.status); return r.json(); });
   const parts = await Promise.all(Array.from({ length: man.parts }, (_, i) =>
-    fetch(`roadster-body.part${i}.txt`).then(r => { if (!r.ok) throw new Error('model part ' + i + ' ' + r.status); return r.text(); })));
+    fetch(asset('car', `roadster-body.part${i}.txt`)).then(r => { if (!r.ok) throw new Error('model part ' + i + ' ' + r.status); return r.text(); })));
   const bin = atob(parts.join(''));
   const buf = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
@@ -792,7 +795,7 @@ async function fetchModel() {
 const gltfLoader = new THREE.GLTFLoader();
 // Draco-compressed geometry, decoded by the pure-JS decoder published with the page (no wasm or eval needed).
 const dracoLoader = new THREE.DRACOLoader();
-dracoLoader.setDecoderPath('draco/');
+dracoLoader.setDecoderPath(ASSETS + 'draco/');
 dracoLoader.setDecoderConfig({ type: 'js' });
 gltfLoader.setDRACOLoader(dracoLoader);
 // Load textures through <img> (blob: images are allowed) rather than fetch(), which the artifact sandbox blocks.
@@ -1615,7 +1618,7 @@ const Music = {
     if (this.src || this.timer) return;                        // already playing underneath: stop() only suspends
     if (this.buffer) return this.play();
     if (this.failed) return this.synth();
-    if (!this.loading) this.loading = fetch(TRACK.src)
+    if (!this.loading) this.loading = fetch(asset('audio', TRACK.src))
       .then(r => { if (!r.ok) throw new Error('soundtrack ' + r.status); return r.text(); })
       .then(t => { const bin = atob(t.trim()), b = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i);
         return new Promise((res, rej) => this.ctx.decodeAudioData(b.buffer, res, rej)); })
@@ -1671,7 +1674,7 @@ const Sfx = {
       this.ext = c.createBiquadFilter(); this.ext.type = 'lowpass'; this.ext.frequency.value = 18000; this.ext.connect(this.bus);   // outside sounds; muffled in the cabin
     }
     this.on = true; this.fade(0.9, 0.6);
-    if (!this.loading) this.loading = fetchText('sfx.part0.txt').then(t => JSON.parse(t))
+    if (!this.loading) this.loading = fetchText('audio', 'sfx.part0.txt').then(t => JSON.parse(t))
       .then(pack => Promise.all(Object.entries(pack).map(([k, b64]) => new Promise((res, rej) => c.decodeAudioData(b64bytes(b64).buffer, b => { this.buf[k] = b; res(); }, rej)))))
       .then(() => { this.ready = true; this.loops(); })
       .catch(e => console.warn('Drive sounds unavailable:', e));
@@ -1790,7 +1793,7 @@ function mergeGeos(list) {
   const out = new THREE.BufferGeometry(); out.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); out.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3)); return out;
 }
 const b64bytes = t => { const bin = atob(t.trim()), b = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i); return b; };
-const fetchText = u => fetch(u).then(r => { if (!r.ok) throw new Error(u + ' ' + r.status); return r.text(); });
+const fetchText = (group, file) => fetch(asset(group, file)).then(r => { if (!r.ok) throw new Error(file + ' ' + r.status); return r.text(); });
 // Images go through blob: URLs (the artifact sandbox allows those, not data: URLs).
 const imageTex = bytes => new Promise((res, rej) => {
   const url = URL.createObjectURL(new Blob([bytes], { type: 'image/jpeg' }));
@@ -1803,10 +1806,10 @@ function heightMesh(size, n, h, material) {
 }
 function loadCanyon() {
   if (!AZ.loading) AZ.loading = (async () => {
-    const meta = JSON.parse(await fetchText('canyon.json'));
+    const meta = JSON.parse(await fetchText('canyon', 'canyon.json'));
     // 4096 px aerial photo (about 2.2 m per pixel) where the GPU and screen can take it, 2048 px on phones.
     const lite = innerWidth < 820 || renderer.capabilities.maxTextureSize < 8192 || (navigator.deviceMemory || 8) <= 4;
-    const [nh, fh, ni, fi, ph, pi] = await Promise.all(['canyon-near-h', 'canyon-far-h', lite ? 'canyon-near-img-lite' : 'canyon-near-img', 'canyon-far-img', 'canyon-patch-h', 'canyon-patch-img'].map(n => fetchText(n + '.part0.txt')));
+    const [nh, fh, ni, fi, ph, pi] = await Promise.all(['canyon-near-h', 'canyon-far-h', lite ? 'canyon-near-img-lite' : 'canyon-near-img', 'canyon-far-img', 'canyon-patch-h', 'canyon-patch-img'].map(n => fetchText('canyon', n + '.part0.txt')));
     const toH = t => { const u = new Uint16Array(b64bytes(t).buffer), f = new Float32Array(u.length); for (let i = 0; i < u.length; i++) f[i] = u[i] * meta.scale; return f; };
     buildCanyon(meta, toH(nh), toH(fh), await imageTex(b64bytes(ni)), await imageTex(b64bytes(fi)), toH(ph), await imageTex(b64bytes(pi)));
   })();
@@ -2284,8 +2287,8 @@ const ORBIT_KM = 400, ORBIT_MPH = 17100;
 const ease3 = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
 function loadOrbit() {
   if (!SP.loading) SP.loading = (async () => {
-    const meta = JSON.parse(await fetchText('orbit.json'));
-    const [d, n, c, r] = await Promise.all(['earth-day', 'earth-night', 'earth-clouds', 'region'].map(k => fetchText(k + '.part0.txt')));
+    const meta = JSON.parse(await fetchText('orbit', 'orbit.json'));
+    const [d, n, c, r] = await Promise.all(['earth-day', 'earth-night', 'earth-clouds', 'region'].map(k => fetchText('orbit', k + '.part0.txt')));
     const tex = await Promise.all([d, n, c, r].map(t => imageTex(b64bytes(t))));
     tex.forEach(t => (t.encoding = THREE.LinearEncoding));                     // decoded by hand in the shaders below
     buildSpace(meta, ...tex);

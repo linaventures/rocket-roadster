@@ -11,7 +11,7 @@
   "private": true,
   "scripts": {
     "serve": "python3 -m http.server 8000",
-    "serve:csp": "python3 tools/csp_strict.py . 8000"
+    "serve:csp": "python3 pipeline/csp_strict.py . 8000"
   },
   "description": "Fan-made 3D Roadster configurator and driving game"
 }

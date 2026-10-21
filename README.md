@@ -44,10 +44,19 @@ The trip to orbit draws space as a second scene in kilometres behind the car sce
 
 ## How it's built
 
-- One page (`index.html`): three.js 0.147, Web Audio, no build step. Everything else it loads is base64 text next to it.
-- The car started as a Hunyuan 3D generation, rebuilt as clean quads in Blender (`retopo_roadster.py`, `finish_roadster.py`) and finished with glTF Transform (`tools/reference-pass.mjs`). The source models aren't in this repo, because they were generated from reference photos we don't own.
-- The canyon is built by `tools/prep_canyon.py` (elevation, imagery and the OpenStreetMap road in `data/osm/`), and the Earth by `tools/prep_orbit.py`.
-- Music and sound effects were generated with ElevenLabs through fal (`tools/el_music.py`, `tools/el_sfx.py`) and packed by `tools/pack_sfx.py`. A fully synthesised version of the music is in the page as a fallback (`tools/music-module.js`).
+- One page (`index.html`): three.js 0.147, Web Audio, no build step. It loads everything else from `assets/` as base64 text.
+- The car started as a Hunyuan 3D generation, rebuilt as clean quads in Blender (`pipeline/car/retopo_roadster.py`, `finish_roadster.py`) and finished with glTF Transform (`reference-pass.mjs`). The source models aren't in this repo, because they were generated from reference photos we don't own.
+- The canyon is built by `pipeline/canyon/prep_canyon.py` from elevation tiles, aerial imagery and the OpenStreetMap road next to it. The Earth is built by `pipeline/orbit/prep_orbit.py`.
+- Music and sound effects were generated with ElevenLabs through fal (`pipeline/audio/el_music.py`, `el_sfx.py`) and packed by `pack_sfx.py`. A fully synthesised version of the music is in the page as a fallback (`music-module.js`).
+
+## Layout
+
+```
+index.html        the game
+assets/           what the game loads: car, canyon, orbit, audio, draco (the mesh decoder)
+pipeline/         the scripts that made the assets, grouped the same way
+docs/             images for this README
+```
 
 To run it locally, serve the folder over HTTP (it won't work from a file URL):
 
@@ -70,11 +79,11 @@ The filming location for the Thelma & Louise ending is documented by the [Utah F
 
 ## Licence
 
-The code (`index.html`, the scripts in the repo root and `tools/`) is MIT licensed; see [LICENSE](LICENSE).
+The code (`index.html` and the scripts in `pipeline/`) is MIT licensed; see [LICENSE](LICENSE).
 
 The data and media keep their own terms:
 
-- the OpenStreetMap road data (in `data/osm/` and the road in `canyon.json`) is under the ODbL, with the attribution above
+- the OpenStreetMap road data (in `pipeline/canyon/` and the road in `assets/canyon/canyon.json`) is under the ODbL, with the attribution above
 - the elevation, USGS imagery and NASA Earth imagery follow their sources' terms (USGS and NASA material is public domain)
 - the music and sound effects were generated with ElevenLabs through fal and follow those services' terms
 - the car model is a fan-made approximation, and the names Tesla, Roadster and SpaceX belong to their owners
