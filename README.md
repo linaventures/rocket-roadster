@@ -67,3 +67,14 @@ Then open http://localhost:8000.
 - three.js, glTF Transform, Draco, Blender
 
 The filming location for the Thelma & Louise ending is documented by the [Utah Film Commission](https://film.utah.gov/thelma-louise-30).
+
+## Licence
+
+The code (`index.html`, the scripts in the repo root and `tools/`) is MIT licensed; see [LICENSE](LICENSE).
+
+The data and media keep their own terms:
+
+- the OpenStreetMap road data (in `data/osm/` and the road in `canyon.json`) is under the ODbL, with the attribution above
+- the elevation, USGS imagery and NASA Earth imagery follow their sources' terms (USGS and NASA material is public domain)
+- the music and sound effects were generated with ElevenLabs through fal and follow those services' terms
+- the car model is a fan-made approximation, and the names Tesla, Roadster and SpaceX belong to their owners
