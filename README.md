@@ -11,6 +11,7 @@ Unofficial fan build, not affiliated with Tesla or SpaceX.
 ## What's in it
 
 - **Studio:** paint (including pinks), glass, accents, wheels, interior, diamonds (a ridge line or full pavé), butterfly doors, a cabin view, a launch demo, and a poster maker with shareable build codes.
+- **Share your car:** the poster's Share on X button posts a link like `?car=RR-26131111-LINA`, which opens the game and drops you on the road in exactly that car.
 - **The canyon drive:** about 7 km of the real Shafer Trail on real terrain and aerial imagery, ending at the rim above the Colorado River where the film's final scene was shot.
 - **Flying:** take off, fly over the canyon, drive off the rim and catch yourself on the thrusters, or keep climbing to a 400 km orbit over a real Earth and re-enter through a plasma glow.
 - **Night mode:** stars, moonlight and working headlights.

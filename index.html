@@ -3,6 +3,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Rocket Roadster Studio</title>
+<meta name="description" content="Build your Roadster, drive the real Shafer Trail and fly it to orbit. A fan-made game that runs in your browser.">
+<meta property="og:title" content="Rocket Roadster">
+<meta property="og:description" content="Build your Roadster, drive the real Shafer Trail and fly it to orbit. A fan-made game that runs in your browser.">
+<meta property="og:image" content="https://linaventures.github.io/rocket-roadster/share-card.jpg">
+<meta property="og:url" content="https://linaventures.github.io/rocket-roadster/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://linaventures.github.io/rocket-roadster/share-card.jpg">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -100,6 +107,7 @@ button { cursor: pointer; }
 
 .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-block: 14px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); border-top: 1px solid var(--line); background: var(--surface); padding-bottom: max(14px, env(safe-area-inset-bottom, 0px)); }
 .primary { border: 0; background: var(--gold); color: var(--gold-ink); border-radius: 12px; padding: 13px 14px; font-weight: 600; letter-spacing: .04em; }
+.share-x { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
 .primary:disabled { opacity: .55; cursor: default; }
 .secondary { border: 1px solid var(--line); background: var(--raised); border-radius: 12px; padding: 13px 14px; font-weight: 500; }
 
@@ -301,10 +309,11 @@ body.driving .panel, body.driving .views, body.driving .doors-btn, body.driving 
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="posterTitle">
     <h3 id="posterTitle">Your poster</h3>
     <img id="posterImg" alt="Poster of your Roadster build">
-    <p class="note">Save your poster (or right-click or long-press the image), then share it with your build code.</p>
+    <p class="note">Share it on X with a link that drives this exact car. On a computer the poster is copied, so paste it into your post.</p>
     <textarea id="caption" aria-label="Caption"></textarea>
     <div class="row">
-      <button class="primary" id="downloadPoster" hidden>Save poster</button>
+      <a class="primary share-x" id="shareX" target="_blank" rel="noopener">Share on X</a>
+      <button class="secondary" id="downloadPoster" hidden>Save poster</button>
       <button class="secondary" id="copyCaption">Copy caption</button>
       <button class="secondary" id="closeModal">Close</button>
     </div>
@@ -397,6 +406,11 @@ let state = { ...PRESETS[0].s };
 try { const saved = JSON.parse(localStorage.getItem('rr-build') || 'null'); if (saved) state = { ...state, ...saved }; } catch (e) {}
 const fromHash = parseCode(decodeURIComponent((location.hash || '').slice(1)));
 if (fromHash) state = fromHash;
+// A shared link (?car=RR-…) opens with that exact build and drives straight onto the canyon road.
+const fromLink = parseCode(new URLSearchParams(location.search).get('car') || '');
+if (fromLink) state = fromLink;
+const PLAY_URL = 'https://linaventures.github.io/rocket-roadster/';
+const shareLink = s => PLAY_URL + '?car=' + encodeURIComponent(buildCode(s));
 
 function buildCode(s) { return 'RR-' + KEYS.map(k => s[k]).join('') + '-' + (s.sign || 'ROADSTER'); }
 function parseCode(str) {
@@ -804,6 +818,7 @@ function modelFailed(err) {
   car.visible = true; stage.dataset.model = 'simplified';
   $('modelStatus').hidden = true;
   console.error('Detailed model failed to load, showing the simplified one:', err);
+  driveFromLink();
   toast('Showing the simplified model. The detailed one did not load.');
 }
 fetchModel().then(buf => gltfLoader.parse(buf, '', onModel, modelFailed)).catch(modelFailed);
@@ -889,6 +904,14 @@ function onModel(gltf) {
   }
   car.visible = true; stage.dataset.model = 'detailed'; $('modelStatus').hidden = true;
   applyState();
+  driveFromLink();
+}
+// From a shared link, go straight to the road. Sound needs a tap or key first, so it starts on the first one.
+function driveFromLink() {
+  if (!fromLink || driveFromLink.done) return;
+  driveFromLink.done = true; enterDrive();
+  const wake = () => { removeEventListener('pointerdown', wake, true); removeEventListener('keydown', wake, true); if (drive.on) { if (Music.wanted) Music.start(); Sfx.start(); musicLabel(); } };
+  addEventListener('pointerdown', wake, true); addEventListener('keydown', wake, true);
 }
 
 /* Interior — authored from Tesla's official cabin photograph; dimensions estimated. */
@@ -1309,13 +1332,27 @@ $('share').onclick = async () => {
   $('posterImg').src = c.toDataURL('image/png');
   posterCanvas = c;
   posterName = 'roadster-' + state.sign.toLowerCase() + '.png';
-  $('caption').value = `Built my Roadster: ${t.name} trim in ${OPTS.paint.items[state.paint].name} with ${OPTS.glass.items[state.glass].name} glass${state.gems ? ' and ' + OPTS.gems.items[state.gems].name + ' diamonds' : ''}. 0–60 in ${t.zero.replace('<', 'under ')}. Call sign ${state.sign}.\n\nBuild code: ${buildCode(state)}`;
+  $('caption').value = `Built my Roadster: ${t.name} trim in ${OPTS.paint.items[state.paint].name} with ${OPTS.glass.items[state.glass].name} glass${state.gems ? ' and ' + OPTS.gems.items[state.gems].name + ' diamonds' : ''}. 0–60 in ${t.zero.replace('<', 'under ')}. Call sign ${state.sign}.\n\nDrive it: ${shareLink(state)}`;
+  posterBlob = null; c.toBlob(b => (posterBlob = b), 'image/png');
+  $('shareX').href = 'https://x.com/intent/post?text=' + encodeURIComponent(shareText()) + '&url=' + encodeURIComponent(shareLink(state));
   $('modal').hidden = false; $('closeModal').focus();
 
 };
 // The artifact viewer blocks plain download links, so the poster is saved through its downloads
 // capability (the viewer confirms each save). Where saving isn't available the button stays hidden.
-let posterCanvas = null, posterName = 'roadster.png', downloads = null;
+let posterCanvas = null, posterBlob = null, posterName = 'roadster.png', downloads = null;
+const shareText = () => { const t = TRIMS[state.trim]; return `Built my Roadster: ${t.name} trim in ${OPTS.paint.items[state.paint].name}${state.gems ? ' with ' + OPTS.gems.items[state.gems].name.toLowerCase() + ' diamonds' : ''}. Call sign ${state.sign}. Drive it:`; };
+$('shareX').onclick = e => {
+  const file = posterBlob && new File([posterBlob], posterName, { type: 'image/png' });
+  // Phones: the share sheet takes the poster, the caption and the link together (X included).
+  if (file && matchMedia('(pointer: coarse)').matches && navigator.canShare && navigator.canShare({ files: [file] })) {
+    e.preventDefault();
+    navigator.share({ files: [file], text: shareText() + ' ' + shareLink(state) }).catch(() => {});
+    return;
+  }
+  // Computers: X's post link can't carry an image, so the poster goes on the clipboard to paste in.
+  try { if (posterBlob) navigator.clipboard.write([new ClipboardItem({ 'image/png': posterBlob })]).then(() => toast('Poster copied. Paste it into your post'), () => {}); } catch (err) {}
+};
 (async () => {
   try { downloads = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { downloads = null; }
   $('downloadPoster').hidden = !downloads;
